@@ -27,6 +27,7 @@ domains.
 """
 import argparse
 import itertools
+import json
 import md5
 import os
 
@@ -45,10 +46,13 @@ def main():
     solo_flags, arg_flags = parse_params(params)
     base_cmd = ' '.join([args.r, ' '.join(solo_flags)])
     for vals in itertools.product(*arg_flags.values()):
-        arg_pairs = ' '.join(map(' '.join, zip(arg_flags.keys(), vals)))
+        arg_pairs = zip(arg_flags.keys(), vals)
+        arg_str = ' '.join(map(' '.join, arg_pairs))
         for file in args.i:
-            outfile = os.path.join(args.o, outfile_name(base_cmd + arg_pairs + file))
-            cmd = ' '.join([base_cmd, arg_pairs, '-o', outfile, file])
+            outfile = os.path.join(args.o, outfile_name(base_cmd + arg_str + file))
+            cmd = ' '.join([base_cmd, arg_str, '-o', outfile, file])
+            store_metadata(open(os.path.join(args.o, 'METADATA'), 'a'),
+                    args.r, solo_flags, arg_pairs, file, outfile, cmd)
             print cmd
 
 def process_arg(x):
@@ -85,6 +89,17 @@ def parse_params(params):
             i += 2
             continue
     return solo_flags, arg_flags
+
+def store_metadata(fh, cmd, solo_flags, arg_flags, infile, outfile, full_cmd):
+    """Write the metadata corresponding to a single run to a file."""
+    json.dump({
+        'outfile': os.path.split(outfile)[-1],
+        'cmd': cmd,
+        'infile': infile,
+        'solo_flags': solo_flags,
+        'arg_flags': {k.lstrip('-'):v for k, v in arg_flags},
+        'full_cmd': full_cmd
+    }, fh, indent=2)
 
 def outfile_name(cmd):
     """Generate an output filename by hashing the (partial) command line."""
