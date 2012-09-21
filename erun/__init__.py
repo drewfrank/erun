@@ -1,3 +1,6 @@
-"""TODO: Document your package."""
+"""erun: a lightweight experiment runner."""
 
-__version__ = 'TODO: Enter a version'
+__version__ = '0.1'
+
+from erun import *
+from equery import *
