@@ -33,16 +33,18 @@ import os
 
 FP_PREC = 1e-8 # Numbers that differ by less than this quantity are assumed equal.
 
-parser = argparse.ArgumentParser(description='Prepare a set of commands to run a single experiment.')
-parser.add_argument('-r', metavar='MAIN_SCRIPT', type=str,
-        help='The base command for running a single trial.')
-parser.add_argument('-o', metavar='OUT_DIR', type=str, 
-        help='Directory for the result files.')
-parser.add_argument('-i', metavar='FILE', nargs='+', type=str, 
-        help='Input files to process.')
-args, params = parser.parse_known_args()
+def parse_args():
+    parser = argparse.ArgumentParser(description='Prepare a set of commands to run a single experiment.')
+    parser.add_argument('-r', metavar='MAIN_SCRIPT', type=str,
+            help='The base command for running a single trial.')
+    parser.add_argument('-o', metavar='OUT_DIR', type=str, 
+            help='Directory for the result files.')
+    parser.add_argument('-i', metavar='FILE', nargs='+', type=str, 
+            help='Input files to process.')
+    return parser.parse_known_args()
 
 def main():
+    args, params = parse_args()
     solo_flags, arg_flags = parse_params(params)
     base_cmd = ' '.join([args.r, ' '.join(solo_flags)])
     for vals in itertools.product(*arg_flags.values()):
