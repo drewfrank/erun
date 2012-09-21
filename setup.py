@@ -12,5 +12,5 @@ setup(
     packages = [
         'erun'
     ],
-    scripts=['bin/erun']
+    scripts=['bin/erun', 'bin/equery']
 )
