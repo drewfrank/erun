@@ -47,15 +47,18 @@ def main():
     args, params = parse_args()
     solo_flags, arg_flags = parse_params(params)
     base_cmd = ' '.join([args.r, ' '.join(solo_flags)])
+    metadata_file = os.path.join(args.o, 'METADATA')
+    metadata = load_metadata(metadata_file)
     for vals in itertools.product(*arg_flags.values()):
         arg_pairs = zip(arg_flags.keys(), vals)
         arg_str = ' '.join(map(' '.join, arg_pairs))
         for file in args.i:
             outfile = os.path.join(args.o, outfile_name(base_cmd + arg_str + file))
             cmd = ' '.join([base_cmd, arg_str, '-o', outfile, file])
-            store_metadata(open(os.path.join(args.o, 'METADATA'), 'a'),
-                    args.r, solo_flags, arg_pairs, file, outfile, cmd)
+            metadata.append(compose_metadata(
+                    args.r, solo_flags, arg_pairs, file, outfile, cmd))
             print cmd
+    store_metadata(open(metadata_file, 'w'), metadata)
 
 def process_arg(x):
     """Process an argument and create a list of possible values."""
@@ -92,16 +95,27 @@ def parse_params(params):
             continue
     return solo_flags, arg_flags
 
-def store_metadata(fh, cmd, solo_flags, arg_flags, infile, outfile, full_cmd):
-    """Write the metadata corresponding to a single run to a file."""
-    json.dump({
+def load_metadata(file_path):
+    if os.path.exists(file_path):
+        return json.load(open(file_path))
+    else:
+        return []
+
+def store_metadata(fh, metadata):
+    """Write the metadata for this experiment to a file."""
+    json.dump(metadata, fh, indent=2)
+
+
+def compose_metadata(cmd, solo_flags, arg_flags, infile, outfile, full_cmd):
+    """Create a metadata entry for a single trial."""
+    return {
         'outfile': os.path.split(outfile)[-1],
         'cmd': cmd,
         'infile': infile,
         'solo_flags': solo_flags,
         'arg_flags': {k.lstrip('-'):v for k, v in arg_flags},
         'full_cmd': full_cmd
-    }, fh, indent=2)
+    }
 
 def outfile_name(cmd):
     """Generate an output filename by hashing the (partial) command line."""
