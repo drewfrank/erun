@@ -1,0 +1,48 @@
+# README.org
+# This file can be "run" using the org-babel functionality of emacs to produce README.md.
+# NOTE: In order for the code to execute correctly, the current directory must be erun/tests and the erun package must be installed.
+#+TITLE: erun: A lightweight experiment runner
+
+# Prepare the environment.
+#+BEGIN_SRC sh :exports none
+rm cmds; rm -rf inputs; rm -rf results;
+mkdir inputs; mkdir results; touch inputs/input1 inputs/input2
+#+END_SRC
+
+#+RESULTS:
+
+* About
+erun is a small collection of tools designed to simplify the task of setting up and running computational experiments. It is implemented in Python but supports experimental code and data in arbitrary languages and formats -- its only requirement is a fairly general command-line interface for running experimental trials.
+* Example usage
+Using erun involves four simple steps:
+1. Create an experiment script that conforms to the erun command line interface. In this example, the script is called experiment.py:
+   #+BEGIN_SRC sh :results output :exports both
+   ./experiment.py -h
+   #+END_SRC
+   The arguments "-s" and "--foo" are parameters to be varied over the course of different trials. The arguments "-o" and "file" implement the erun command line interface.
+2. Call the erun executable to generate the experiment's commands and associated metadata. For example, the following call:
+   #+BEGIN_SRC sh :results output :exports both
+   erun -r ./experiment.py -o results -s range:0,10,5 --foo set:bar,baz -i inputs/input1 inputs/input2 >cmds
+   #+END_SRC
+   will generate the command lines to run 12 experiments (3 values of "-s", 2 values of "--foo", and 2 input files) and write them to cmds.
+   #+BEGIN_SRC sh :results output :exports both
+   head cmds
+   #+END_SRC
+3. Run the commands generated in step 2, either locally via source or remotely using something like GNU parallel.
+   #+BEGIN_SRC sh :results output :exports both
+   bash cmds
+   #+END_SRC
+   At this point, the results are stored in individual files in the specified output directory (results/ in this case), and results/METADATA contains the mapping from filenames to parameter settings:
+   #+BEGIN_SRC sh :results output :exports both
+   ls -x results
+   #+END_SRC
+4. Use one of the language-specific query modules to collect a subset of the results. The Python version works as follows:
+   #+BEGIN_SRC python :results output verbatim :exports both
+   import erun; import numpy as np
+   df = erun.query('results', process=np.loadtxt, s=[0,10], foo='baz')
+   print df[:10]
+   #+END_SRC
+   Here, df is a Pandas DataFrame object containing the results and metadata for the trials specified by the parameters to erun.query.
+
+* Installation
+python setup.py install
