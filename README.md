@@ -10,7 +10,7 @@ Using erun involves four simple steps:
 1.  Create an experiment script that conforms to the erun command line interface. In this example, the script is called experiment.py:
     
     ```sh
-       ./experiment.py -h
+    ./experiment.py -h
     ```
     
         usage: experiment.py [-h] [-s S] [--foo FOO] [-o O] file
@@ -31,13 +31,13 @@ Using erun involves four simple steps:
 2.  Call the erun executable to generate the experiment's commands and associated metadata. For example, the following call:
     
     ```sh
-       erun -r ./experiment.py -o results -s range:0,10,5 --foo set:bar,baz -i inputs/input1 inputs/input2 >cmds
+    erun -r ./experiment.py -o results -s range:0,10,5 --foo set:bar,baz -i inputs/input1 inputs/input2 >cmds
     ```
     
     will generate the command lines to run 12 experiments (3 values of "-s", 2 values of "&ndash;foo", and 2 input files) and write them to cmds.
     
     ```sh
-       head cmds
+    head cmds
     ```
     
         ./experiment.py  -s 0 --foo bar -o results/8532fb26 inputs/input1
@@ -54,13 +54,13 @@ Using erun involves four simple steps:
 3.  Run the commands generated in step 2, either locally via source or remotely using something like GNU parallel.
     
     ```sh
-       bash cmds
+    bash cmds
     ```
     
     At this point, the results are stored in individual files in the specified output directory (results/ in this case), and results/METADATA contains the mapping from filenames to parameter settings:
     
     ```sh
-       ls -x results
+    ls -x results
     ```
     
     <pre class="example">
@@ -71,9 +71,9 @@ Using erun involves four simple steps:
 4.  Use one of the language-specific query modules to collect a subset of the results. The Python version works as follows:
     
     ```python
-       import erun; import numpy as np
-       df = erun.query('results', process=np.loadtxt, s=[0,10], foo='baz')
-       print df[:10]
+    import erun; import numpy as np
+    df = erun.query('results', process=np.loadtxt, s=[0,10], foo='baz')
+    print df[:10]
     ```
     
                        cmd  foo         infile   outfile   s  res
