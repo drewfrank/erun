@@ -78,6 +78,14 @@ Using erun involves four simple steps:
     print df[:10]
     ```
     
+    <pre class="example">
+                   cmd  foo         infile   outfile   s  res
+    0  ./experiment.py  baz  inputs/input1  7cbc7805   0    2
+    1  ./experiment.py  baz  inputs/input2  6055ff6a   0    2
+    2  ./experiment.py  baz  inputs/input1  bacc9b0e  10    7
+    3  ./experiment.py  baz  inputs/input2  67a41f56  10    7
+    </pre>
+    
     Here, `df` is a [Pandas](<http://pandas.pydata.org>) DataFrame object containing the results and metadata for the trials specified by the parameters to `erun.query`.
 
 ## Command-line interface
