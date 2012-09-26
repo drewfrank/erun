@@ -44,9 +44,9 @@ Using erun involves four simple steps:
    #+END_SRC
    Here, `df` is a [Pandas](http://pandas.pydata.org) DataFrame object containing the results and metadata for the trials specified by the parameters to `erun.query`.
 ** Command-line interface
-*** Writing experiment scripts
-*** Calling *erun*
-- set, range, etc.
+   #+BEGIN_SRC sh :results output :exports both
+   erun -h
+   #+END_SRC
 ** Language-specific query modules
 *** Python
 ** Installation
