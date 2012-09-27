@@ -19,7 +19,7 @@ def parse_args():
 def main():
     args = parse_args()
     # Write the arguments to the output file.
-    open(args.o, 'w').write(str(args))
+    open(args.o, 'w').write(str(2 + args.s * (-.5 if args.foo=='bar' else .5)))
 
 if __name__ == '__main__':
     main()
