@@ -75,15 +75,15 @@ Using erun involves four simple steps:
     ```python
     import erun; import numpy as np
     df = erun.query('results', process=np.loadtxt, s=[0,10], foo='baz')
-    print df[:10]
+    print df
     ```
     
     <pre class="example">
-                   cmd  foo         infile   outfile   s  res
-    0  ./experiment.py  baz  inputs/input1  7cbc7805   0    2
-    1  ./experiment.py  baz  inputs/input2  6055ff6a   0    2
-    2  ./experiment.py  baz  inputs/input1  bacc9b0e  10    7
-    3  ./experiment.py  baz  inputs/input2  67a41f56  10    7
+                   cmd   s  foo         infile           outfile  res
+    0  ./experiment.py   0  baz  inputs/input1  results/7cbc7805    2
+    1  ./experiment.py   0  baz  inputs/input2  results/6055ff6a    2
+    2  ./experiment.py  10  baz  inputs/input1  results/bacc9b0e    7
+    3  ./experiment.py  10  baz  inputs/input2  results/67a41f56    7
     </pre>
     
     Here, `df` is a [Pandas](<http://pandas.pydata.org>) DataFrame object containing the results and metadata for the trials specified by the parameters to `erun.query`.
@@ -164,14 +164,64 @@ erun -h
      - If it parses long options, it must accept the format "--long ARG"
        rather than (or in addition to) "--long=ARG".
      - All options must begin with "-" or "--".
-     - It should not accept multiple forms of the same option, e.g.
+     - It should not accept multiple spellings of the same option, e.g.
        "-d" and "--dims" having the same behavior. If erun is called
        multiple times using different forms of the same option,
        subsequent queries may not return all relevant results.
+     - It must not accept long and short options with the same name,
+       e.g. -a and --a. That's just a bad idea, anyway.
+
+```sh
+equery -h
+```
+
+    usage: equery [-h] [-o OUT_DIR] [-FLAG FLAG] [-SHORT_OPT ARG] [--LONG_OPT ARG]
+    
+    Collect the result files matching a specified filter.
+    
+    optional arguments:
+      -h, --help      show this help message and exit
+      -o OUT_DIR      Directory where the result files are located.
+      -FLAG FLAG      Simple flag to be passed through to the experiment script.
+                      Multiple such flags are allowed.
+      -SHORT_OPT ARG  Short option with argument to be passed through to the
+                      experiment script. Multiple such options are allowed.
+      --LONG_OPT ARG  Long option with argument to be passed through to the
+                      experiment script. Multiple such options are allowed.
+    
+    equery collects the set of result files matching the provided options and
+    prints them, along with their metadata, as a tab-delimited table to stdout.
+    
+    The command line interface for equery mirrors that of erun except that no input
+    file is needed. See `erun -h` for an explanation of the special argument types
+    accepted. When multiple values for a single option are specified (using e.g.
+    set: notation), equery includes result files generated with any of the specified
+    values.
+    
+    It may occasionally be useful to call equery from the command line, but its
+    primary purpose is to simplify the development of the language-specific
+    query functions. See e.g. the query() function in equery.py for the Python
+    version, which calls equery in a subprocess and then parses the output.
 
 ## Language-specific query modules
 
+Several language-specific query modules are available for loading results programmatically into convenient data structures. Currently supported languages are:
+
 ### Python
+
+```python
+import erun; import numpy as np
+df = erun.query('results', process=np.loadtxt, s=[0,10], foo='baz')
+print df
+```
+
+<pre class="example">
+               cmd   s  foo         infile           outfile  res
+0  ./experiment.py   0  baz  inputs/input1  results/7cbc7805    2
+1  ./experiment.py   0  baz  inputs/input2  results/6055ff6a    2
+2  ./experiment.py  10  baz  inputs/input1  results/bacc9b0e    7
+3  ./experiment.py  10  baz  inputs/input2  results/67a41f56    7
+</pre>
 
 ## Installation
 

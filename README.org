@@ -40,14 +40,23 @@ Using erun involves four simple steps:
    #+BEGIN_SRC python :results output verbatim :exports both
    import erun; import numpy as np
    df = erun.query('results', process=np.loadtxt, s=[0,10], foo='baz')
-   print df[:10]
+   print df
    #+END_SRC
    Here, `df` is a [Pandas](http://pandas.pydata.org) DataFrame object containing the results and metadata for the trials specified by the parameters to `erun.query`.
 ** Command-line interface
    #+BEGIN_SRC sh :results output :exports both
    erun -h
    #+END_SRC
+   #+BEGIN_SRC sh :results output :exports both
+   equery -h
+   #+END_SRC
 ** Language-specific query modules
+Several language-specific query modules are available for loading results programmatically into convenient data structures. Currently supported languages are:
 *** Python
+#+BEGIN_SRC python :results output verbatim :exports both
+import erun; import numpy as np
+df = erun.query('results', process=np.loadtxt, s=[0,10], foo='baz')
+print df
+#+END_SRC
 ** Installation
 `python setup.py install`
