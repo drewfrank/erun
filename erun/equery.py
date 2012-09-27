@@ -1,28 +1,69 @@
 #!/usr/bin/env python2
 """
-Output the list of result files matching a metadata filter.
+Output the results matching a metadata filter.
 """
 __all__ = ['query']
 
 import argparse
 import json
 import os
+from cStringIO import StringIO
+import subprocess
+import textwrap
 
 import erun
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Collect the result files matching a specified filter.')
+    parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description='Collect the result files matching a specified filter.',
+            epilog=textwrap.dedent("""
+            equery collects the set of result files matching the provided options and
+            prints them, along with their metadata, as a tab-delimited table to stdout.
+
+            The command line interface for equery mirrors that of erun except that no input
+            file is needed. See `erun -h` for an explanation of the special argument types
+            accepted. When multiple values for a single option are specified (using e.g.
+            set: notation), equery includes result files generated with any of the specified
+            values.
+
+            It may occasionally be useful to call equery from the command line, but its
+            primary purpose is to simplify the development of the language-specific
+            query functions. See e.g. the query() function in equery.py for the Python
+            version, which calls equery in a subprocess and then parses the output.
+            """))
     parser.add_argument('-o', metavar='OUT_DIR', type=str, 
             help='Directory where the result files are located.')
+    parser.add_argument('-FLAG',
+            help='Simple flag to be passed through to the experiment script. Multiple such flags are allowed.')
+    parser.add_argument('-SHORT_OPT', metavar='ARG', type=str, 
+            help='Short option with argument to be passed through to the experiment script. Multiple such options are allowed.')
+    parser.add_argument('--LONG_OPT', metavar='ARG', type=str, 
+            help='Long option with argument to be passed through to the experiment script. Multiple such options are allowed.')
     return parser.parse_known_args()
 
 def main():
-    """Print the files matching a specified filter to stdout."""
+    """Print the files and metadata matching a specified filter to stdout."""
     args, params = parse_args()
     solo_flags, arg_flags = erun.parse_params(params)
     all = json.load(open(os.path.join(args.o, 'METADATA')))
     matches = [x for x in all if select(x, solo_flags, arg_flags)]
-    print '\n'.join(os.path.join(args.o, x['outfile']) for x in matches)
+    # Don't use Pandas to implement this since it's not a dependency.
+    solo_cols = list(set.union(*(set(entry['solo_flags']) for entry in matches)))
+    arg_cols = list(set.union(*(set(entry['arg_flags'].keys()) for entry in matches)))
+    all_cols = ['cmd'] + solo_cols + arg_cols + ['infile', 'outfile']
+    def mk_row(entry):
+        # Create a dict corresponding to one row of the output.
+        row = {col: None for col in arg_cols + solo_cols}
+        row.update(entry['arg_flags'])
+        row.update({col: (True if col in entry.solo_flags else False) for col in solo_cols})
+        row.update({'cmd': entry['cmd'], 'infile': entry['infile'], 
+            'outfile': os.path.join(args.o, entry['outfile'])})
+        return row
+    print '\t'.join(all_cols)
+    for x in matches:
+        row = mk_row(x)
+        print '\t'.join(row[key] for key in all_cols)
 
 def select(entry, solo_flags, arg_flags):
     """Returns true if the metadata entry matches the filter, and False otherwise."""
@@ -34,14 +75,17 @@ def select(entry, solo_flags, arg_flags):
     return True
 
 def query(result_dir, process=None, *args, **kwargs):
-    """Return a list of results (or files) matching a metadata filter.
+    """Return the results matching a metadata filter.
     
     Parameters
     ----------
     result_dir : str
         Directory containing the results and metadata file.
     process : function, optional
-        A function to load and process each data file.
+        A function to load and process each data file. If provided, this
+        function will be called once for each result file (given the
+        path to the file as input), and its return value placed into
+        the `res` column of the returned DataFrame.
     *args : str, optional
         Flags to use as a filter, e.g. "-x".
     **kwargs : optional
@@ -60,52 +104,22 @@ def query(result_dir, process=None, *args, **kwargs):
     # Get the keyword argument values into the expected format (lists of strings).
     for k,v in kwargs.iteritems():
         if isinstance(v, basestring):
-            # v is a string. Pass it through the parsing function.
-            kwargs[k] = erun.process_arg(v)
+            # v is a concrete string value or a special value. Leave it alone.
+            pass
         elif hasattr(v, '__iter__'):
-            # v is a Python list, array, etc.
-            kwargs[k] = map(str, v)
+            # v is a Python list, array, etc. Convert to "set:" notation.
+            kwargs[k] = 'set:' + ','.join(map(str, v))
         else:
             # v is probably a single, numeric value.
-            kwargs[k] = [str(v)]
-    all = json.load(open(os.path.join(result_dir, 'METADATA')))
-    solo_flags = map(str, args)
-    arg_flags = {k: v for k,v in kwargs.iteritems()}
-    matches = [x for x in all if select(x, solo_flags, arg_flags)]
-    df = dataframe_from_metadata(matches)
+            kwargs[k] = str(v)
+    # Build the command line and call equery. Note that equery strips all leading
+    # dashes from all of the options, so it's okay if there are too many / not enough.
+    cmd = ' '.join(['equery -o', result_dir, ' '.join('-%s' % flag for flag in args),
+        ' '.join('-%s %s' % (k, v) for k,v in kwargs.iteritems())])
+    df = pd.read_csv(StringIO(subprocess.check_output(cmd.split())), sep='\t')
     if process:
-        df['res'] = df.outfile.apply(lambda x: os.path.join(result_dir, x)).apply(process)
+        df['res'] = df.outfile.apply(process)
     return df
-
-def dataframe_from_metadata(metadata):
-    """Create a dataframe to organize metadata.
-    
-    Parameters
-    ----------
-    metadata : list of dicts
-        Metadata entries for a collection of trials.
-
-    Returns
-    -------
-    df : pandas.DataFrame
-        A dataframe representation of the metadata. This dataframe is constructed as
-        follows:
-        - Create columns for cmd, each element of solo_flags, each element of arg_flags,
-          infile, and outfile.
-        - Columns corresponding to a solo_flag element are boolean.
-        - Columns corresponding to an arg_flag pair are string valued.
-    """
-    import pandas as pd
-    solo_cols = list(set.union(*(set(entry['solo_flags']) for entry in metadata)))
-    arg_cols = list(set.union(*(set(entry['arg_flags'].keys()) for entry in metadata)))
-    def mk_row(entry):
-        # Create a dict corresponding to one row of the DataFrame.
-        row = {col: None for col in arg_cols}
-        row.update(entry['arg_flags'])
-        row.update({col: (True if col in entry.solo_flags else False) for col in solo_cols})
-        row.update({'cmd': entry['cmd'], 'infile': entry['infile'], 'outfile': entry['outfile']})
-        return row
-    return pd.DataFrame([mk_row(x) for x in metadata])
 
 if __name__ == '__main__':
     main()
