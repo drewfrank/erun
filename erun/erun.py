@@ -92,10 +92,12 @@ def parse_args():
              - If it parses long options, it must accept the format "--long ARG"
                rather than (or in addition to) "--long=ARG".
              - All options must begin with "-" or "--".
-             - It should not accept multiple forms of the same option, e.g.
+             - It should not accept multiple spellings of the same option, e.g.
                "-d" and "--dims" having the same behavior. If erun is called
                multiple times using different forms of the same option,
                subsequent queries may not return all relevant results.
+             - It must not accept long and short options with the same name,
+               e.g. -a and --a. That's just a bad idea, anyway.
             """))
     parser.add_argument('-r', required=True, metavar='MAIN_SCRIPT', type=str,
             help='The experiment script for running a single trial.')
